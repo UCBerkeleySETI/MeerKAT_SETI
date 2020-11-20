@@ -27,9 +27,9 @@ static void *run(hashpipe_thread_args_t * args)
     int nbeams=65;
     int nants=64;
     int npols=2;
-    int nupchan = 4;
+    int nupchan = 4; //2**19 for 1k;
     int nchans_in = 1;
-    int nchans_out = nchans_in*nupchan; //2**19;
+    int nchans_out = nchans_in*nupchan; 
     int nsamps_in = 8*nupchan;
     int nsamps_out = nsamps_in/nupchan;
 
