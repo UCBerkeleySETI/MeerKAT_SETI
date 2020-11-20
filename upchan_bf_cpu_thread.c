@@ -15,10 +15,6 @@
 #include "hashpipe.h"
 #include "meerkat_databuf.h"
 
-
-void upchannelize(unsigned char* data, float* output, uint64_t N, uint8_t npols){
-}
-  
 static void *run(hashpipe_thread_args_t * args)
 {
     // Local aliases to shorten access to args fields
