@@ -10,19 +10,13 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/types.h>
+#include <fftw3.h>
 #include <unistd.h>
 #include "hashpipe.h"
 #include "meerkat_databuf.h"
 
 
-void upchannelize(unsigned char* data, float* output, uint64_t fft_length, uint8_t npols){
-  for (int p = 0 ; p < npols ; p++){
-    for (int i = 0; i < fft_length ; i++){
-      output[(i*fft_length + p)*2] = data[(i*fft_length + p)*2]-1; // placeholder for fft, real
-      output[(i*fft_length + p)*2+1] = data[(i*fft_length + p)*2+1]+1; // placeholder for fft, imag
-    }
-  }
-
+void upchannelize(unsigned char* data, float* output, uint64_t N, uint8_t npols){
 }
   
 static void *run(hashpipe_thread_args_t * args)
@@ -52,7 +46,7 @@ static void *run(hashpipe_thread_args_t * args)
     host_output = (float*)malloc(output_len * sizeof(float));
     host_input = (char*)malloc(input_len * sizeof(char));
     host_phase = (float*)malloc(nbeams*nants*2*sizeof(float));
-    upchan_output = (float*)malloc(input_len*2*sizeof(float));
+    upchan_output = (float*)malloc(input_len*sizeof(float));
     uint64_t mcnt=0;
     int curblock_in=0;
     int curblock_out=0;
@@ -98,7 +92,7 @@ static void *run(hashpipe_thread_args_t * args)
         hputs(st.buf, status_key, "processing cpu");
         hashpipe_status_unlock_safe(&st);
 
-	//Calcuate phase
+	//Calcuate phase------------------------------------------------------------
 	//Do we want it here or as a separate thread? will need to update every second.
 	for (int b = 0; b < nbeams; b++) {
 	  for (int i = 0; i < nants; i++) {
@@ -109,18 +103,45 @@ static void *run(hashpipe_thread_args_t * args)
 	  
 	//Read input  [ant-freq-time-pol]
         host_input =db_in->block[curblock_in].data_block;
+	hputi4(st.buf,"in[0]",host_input[0]);
+	hputi4(st.buf,"in[1]",host_input[1]);
+	hputi4(st.buf,"in[2]",host_input[2]);
+	hputi4(st.buf,"in[-3]",host_input[input_len-3]);
+	hputi4(st.buf,"in[-2]",host_input[input_len-2]);	
+	hputi4(st.buf,"in[-1]",host_input[input_len-1]);
 
-	//Upchannelize with an FFT
+
+	//Upchannelize with an FFT---------------------------------------------------
+	fftwf_complex *fftbuf;
+	fftwf_plan fplan;
+	fftbuf = (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex)*nupchan);
+	fplan = fftwf_plan_dft_1d(nupchan, fftbuf, fftbuf, FFTW_FORWARD, FFTW_MEASURE);
+
 	for (int i = 0 ; i < nants*nchans_in*(nsamps_in/nupchan) ; i++) {
-	  upchannelize(&host_input[(i*nupchan*npols)*2], &upchan_output[(i*nupchan*npols)*2], nupchan, npols);
+	  for (int p = 0 ; p < npols ; p++){
+	    for (int j = 0; j < nupchan ; j++){
+	      fftbuf[j][0] = host_input[(i*nupchan*npols + j*npols + p)*2]; // real
+	      fftbuf[j][1] = host_input[(i*nupchan*npols + j*npols + p)*2+1]; // imag
+	    }
+	    fftwf_execute(fplan);
+	    for (int j = 0; j < nupchan ; j++){
+	      upchan_output[(i*nupchan*npols + j*npols + p)*2] = fftbuf[j][0]; //real
+	      upchan_output[(i*nupchan*npols + j*npols + p)*2+1] = fftbuf[j][1]; //imag
+	    }
+	  }
 	}
+	fftwf_free(fftbuf); 
+	fftwf_destroy_plan(fplan); 
 	
 	hputi4(st.buf,"upch[0]",upchan_output[0]);
 	hputi4(st.buf,"upch[1]",upchan_output[1]);
 	hputi4(st.buf,"upch[2]",upchan_output[2]);
+	hputi4(st.buf,"upch[-3]",upchan_output[input_len-3]);
+	hputi4(st.buf,"upch[-2]",upchan_output[input_len-2]);
+	hputi4(st.buf,"upch[-1]",upchan_output[input_len-1]);
 
 	float sum_re, sum_im;
-	//incoherent beamform by adding all antennas
+	//incoherent beamform by adding all antennas--------------------------------
 	for (int ft = 0 ; ft < nchans_out*nsamps_out ; ft++) {
 	    for (int p = 0 ; p < npols ; p++) {
 	      sum_re = 0.0;

@@ -31,7 +31,7 @@ static void *run(hashpipe_thread_args_t * args)
 
     int nants=64;
     int npols=2;
-    int nchans=1; //2**19;
+    int nchans=4; //2**19;
     int nsamps=8;
     int input_len = nants*nchans*nsamps*npols*2;
     unsigned char input_data[input_len];
