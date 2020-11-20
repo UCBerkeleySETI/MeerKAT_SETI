@@ -67,8 +67,11 @@ static void *run(hashpipe_thread_args_t * args)
         hashpipe_status_unlock_safe(&st);
 	
 
-	for(int i=0;i<input_len;i++){
-	    input_data[i] = 1;
+	//Generate random data (for testing)
+	srand(42);
+	for(int i=0;i<input_len/2;i++){
+	  input_data[i*2] = rand() % 16; //real
+	  input_data[i*2+1] = rand() % 16; //imag
 	}
 	//move input data to buffer
 	db->block[block_idx].header.mcnt = mcnt;  
