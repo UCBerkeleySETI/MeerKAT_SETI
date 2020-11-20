@@ -15,6 +15,7 @@
 #include "hashpipe.h"
 #include "meerkat_databuf.h"
 
+
 static void *run(hashpipe_thread_args_t * args)
 {
     // Local aliases to shorten access to args fields
@@ -27,9 +28,9 @@ static void *run(hashpipe_thread_args_t * args)
     int nbeams=65;
     int nants=64;
     int npols=2;
-    int nupchan = 4; //2**19 for 1k;
+    int nupchan = 4;
     int nchans_in = 1;
-    int nchans_out = nchans_in*nupchan; 
+    int nchans_out = nchans_in*nupchan; //2**19;
     int nsamps_in = 8*nupchan;
     int nsamps_out = nsamps_in/nupchan;
 
@@ -92,8 +93,8 @@ static void *run(hashpipe_thread_args_t * args)
 	//Do we want it here or as a separate thread? will need to update every second.
 	for (int b = 0; b < nbeams; b++) {
 	  for (int i = 0; i < nants; i++) {
-	    host_phase[(b*nants+i)*2] = b;   //Real
-	    host_phase[(b*nants+i)*2+1] = b; //Imag
+	    host_phase[(b*nants+i)*2] = 1;   //Real
+	    host_phase[(b*nants+i)*2+1] = 1; //Imag
 	  }
 	}
 	  
@@ -136,36 +137,45 @@ static void *run(hashpipe_thread_args_t * args)
 	hputi4(st.buf,"upch[-2]",upchan_output[input_len-2]);
 	hputi4(st.buf,"upch[-1]",upchan_output[input_len-1]);
 
-	float sum_re, sum_im;
 	//incoherent beamform by adding all antennas--------------------------------
 	for (int ft = 0 ; ft < nchans_out*nsamps_out ; ft++) {
-	    for (int p = 0 ; p < npols ; p++) {
-	      sum_re = 0.0;
-	      sum_im = 0.0;
-	      for (int i = 0 ; i < nants ; i++) {
-		int in_id = (i*nchans_out*nsamps_out*npols + ft*npols + p)*2;
-		sum_re += upchan_output[in_id];
-		sum_im += upchan_output[in_id+1];
-	      }
-	      host_output[ft] += sum_re*sum_re + sum_im*sum_im;
+	  float tmp_real = 0.0;
+	  float tmp_imag = 0.0;
+	  float out_sq = 0.0;
+	  for (int p = 0 ; p < npols ; p++) {
+	    for (int i = 0 ; i < nants ; i++) {
+	      int in_id = (i*nchans_out*nsamps_out*npols + ft*npols + p)*2;
+	      tmp_real = upchan_output[in_id];
+	      tmp_imag = upchan_output[in_id+1];
+	      out_sq += tmp_real*tmp_real + tmp_imag*tmp_imag;		    
 	    }
+	  }
+	  //host_output [beam->freq->time]
+	  host_output[ft] = out_sq;
 	}
+
+	hputi4(st.buf,"incoh[0]",host_output[0]);
+	hputi4(st.buf,"incoh[-1]",host_output[nchans_out*nsamps_out-1]);
 	
 	//coherent beamform by multiplying phase
 	for (int ft = 0 ; ft < nchans_out*nsamps_out ; ft++) {
-	  for (int p = 0 ; p < npols ; p++) {
-	    for (int b = 1 ; b < nbeams ; b++) { //starting from b1 since b0 is incoherent
-	      sum_re = 0.0;
-	      sum_im = 0.0;
-	      int out_id = b*nchans_out*nsamps_out + ft;
+	  for (int b = 1 ; b < nbeams ; b++) { //starting from b1 since b0 is incoherent
+	    float out_sq = 0.0;
+	    int out_id = b*nchans_out*nsamps_out + ft;
+	    for (int p = 0 ; p < npols ; p++) {
+	      float tmp_real = 0.0;
+	      float tmp_imag = 0.0;
+	      //multiply-add the 64 antennas with phase offset
 	      for (int i = 0 ; i < nants ; i++) {
 		int ph_id = (b*nants+i)*2;
 		int in_id = (i*nchans_out*nsamps_out*npols + ft*npols + p)*2;
-		sum_re += upchan_output[in_id] * host_phase[ph_id] + upchan_output[in_id+1]*host_phase[ph_id+1];
-		sum_im += upchan_output[in_id+1]*host_phase[ph_id] - upchan_output[in_id]*host_phase[ph_id+1];
+		tmp_real += upchan_output[in_id] * host_phase[ph_id] + upchan_output[in_id+1]*host_phase[ph_id+1];
+		tmp_imag += upchan_output[in_id+1]*host_phase[ph_id] - upchan_output[in_id]*host_phase[ph_id+1];
 	      }
-	      host_output[out_id] += sum_re*sum_re + sum_im*sum_im; //sum Real+Imag and pol
+	      out_sq += tmp_real*tmp_real + tmp_imag*tmp_imag; //sum Real+Imag and pol
 	    }
+	    //host_output [beam->freq->time]
+	    host_output[out_id] = out_sq;
 	  }
 	}
 	  
@@ -183,9 +193,12 @@ static void *run(hashpipe_thread_args_t * args)
 	mcnt++;
 	//display sum in status
 	hashpipe_status_lock_safe(&st);
-	hputi4(st.buf,"CPU b0",host_output[0]);
-	hputi4(st.buf,"CPU b1",host_output[nchans_out*nsamps_out]);
-	hputi4(st.buf,"CPU b2",host_output[2*nchans_out*nsamps_out]);
+	hputi4(st.buf,"out[0]",host_output[0]);
+	hputi4(st.buf,"out[1]",host_output[1]);
+	hputi4(st.buf,"out[2]",host_output[2]);
+	hputi4(st.buf,"out[-3]",host_output[nbeams*nchans_out*nsamps_out-3]);
+	hputi4(st.buf,"out[-2]",host_output[nbeams*nchans_out*nsamps_out-2]);
+	hputi4(st.buf,"out[-1]",host_output[nbeams*nchans_out*nsamps_out-1]);
 	hashpipe_status_unlock_safe(&st);
         /* Check for cancel */
         pthread_testcancel();
