@@ -2,7 +2,7 @@
 
 Process all 64 antennas, 1/16 freq band, 5s in time
 
-See [link](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#) for further information the DSP plan. 
+See [this memo](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#) for further information the DSP plan. 
 
 ## Start the program:
 
