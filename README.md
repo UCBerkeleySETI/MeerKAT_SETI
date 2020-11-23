@@ -6,7 +6,7 @@ See [this memo](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_
 
 ## Start the program:
 
-Currently supporting "Option 1" in the DSP plan, i.e. Upchannelize all the way to 1Hz channels and then coh/incoh beamform (CPU verification)
+Currently supporting "Option 1" of the DSP plan, i.e. Upchannelize all the way to 1Hz channels and then coh/incoh beamform (CPU verification)
 
 ```
 ./cpu_upchan_beamform.sh
