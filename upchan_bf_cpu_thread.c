@@ -8,13 +8,79 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <time.h>
+#include <math.h>
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <fftw3.h>
 #include <unistd.h>
 #include "hashpipe.h"
 #include "meerkat_databuf.h"
+#include "metadata.h" 
 
+#define PI 3.14159265
+#define light 299792458.
+#define one_over_c 0.0033356
+#define R2D 180. / PI
+#define D2R PI / 180.
+#define TAU 2 * PI
+#define inst_long 20.4439
+#define inst_lat 30.7111  //Do we need to take altitude into account?
+
+void calculate_phase(int nbeams, int nants, uint32_t nchans_in, struct timespec time_now, float* freq_now, struct beamCoord beam_coord, struct antCoord ant_coord, double* phase)
+{
+  struct tm* timeinfo;
+  timeinfo = localtime(&time_now.tv_sec);
+  uint year = timeinfo->tm_year + 1900;
+  uint month = timeinfo->tm_mon + 1;
+  if (month < 3) {
+    month = month + 12;
+    year = year - 1;
+  }
+  uint day = timeinfo->tm_mday;
+  float JD = 2 - (int)(year / 100.) + (int)(int)((year / 100.) / 4.) + (int)(365.25 * year)
+    + (int)(30.6001 * (month + 1)) + day + 1720994.5;
+  double T = (JD - 2451545.0)
+    / 36525.0; // Works if time after year 2000, otherwise T is -ve and might break
+  double T0 = fmod((6.697374558 + (2400.051336 * T) + (0.000025862 * T * T)), 24.);
+  double UT = (timeinfo->tm_hour) + (timeinfo->tm_min / 60.)
+    + (timeinfo->tm_sec + time_now.tv_nsec / 1.e9) / 3600.;
+  double GST = fmod((T0 + UT * 1.002737909), 24.);
+  double LST = GST + inst_long / 15.;
+  while (LST < 0) {
+    LST = LST + 24;
+  }
+  LST = fmod(LST, 24);
+
+  for (int b = 0; b < nbeams; b++) {
+    double hour_angle = LST * 15. - beam_coord.ra[b];
+    double alt = sin(beam_coord.dec[b] * D2R) * sin(inst_lat * D2R)
+                 + cos(beam_coord.dec[b] * D2R) * cos(inst_lat * D2R) * cos(hour_angle * D2R);
+    alt = asin(alt);
+    double az = (sin(beam_coord.dec[b] * D2R) - sin(alt) * sin(inst_lat * D2R))
+      / (cos(alt) * cos(inst_lat * D2R));
+    az = acos(az);
+    if (sin(hour_angle * D2R) >= 0) {
+      az = TAU - az;
+    }
+    double projection_angle, effective_angle, offset_distance;
+    for (int i = 0; i < nants ; i++){
+      float dist_y = ant_coord.north[i];
+      float dist_x = ant_coord.east[i];
+      projection_angle = 90 * D2R - atan2(dist_y, dist_x); //Need to check this
+      offset_distance = sqrt(pow(dist_y, 2) + pow(dist_x, 2));
+      effective_angle = projection_angle - az;
+      for (int f = 0; f < nchans_in ; f++ ) {
+	//phase [freq-beam-ant]
+	int ph_id = f*nbeams*nants + b*nants + i;
+	phase[ph_id*2] = cos(TAU * cos(effective_angle) * cos(alt) * offset_distance
+			     * freq_now[f] * one_over_c);
+	phase[ph_id*2+1] = -sin(TAU * cos(effective_angle) * cos(-alt) * offset_distance
+				* freq_now[f] * one_over_c);
+      }
+    }
+  }
+}
 
 static void *run(hashpipe_thread_args_t * args)
 {
@@ -28,9 +94,9 @@ static void *run(hashpipe_thread_args_t * args)
     int nbeams=65;
     int nants=64;
     int npols=2;
-    int nupchan = 4;
+    int nupchan = 4; //should be 2**19 for 1k mode
     int nchans_in = 1;
-    int nchans_out = nchans_in*nupchan; //2**19;
+    int nchans_out = nchans_in*nupchan; 
     int nsamps_in = 8*nupchan;
     int nsamps_out = nsamps_in/nupchan;
 
@@ -38,12 +104,17 @@ static void *run(hashpipe_thread_args_t * args)
     int output_len = nbeams*nchans_out*nsamps_out;
     float* host_output;
     char* host_input;
-    float* host_phase;
+    double* host_phase;
     float* upchan_output;
     host_output = (float*)malloc(output_len * sizeof(float));
     host_input = (char*)malloc(input_len * sizeof(char));
-    host_phase = (float*)malloc(nbeams*nants*2*sizeof(float));
+    host_phase = (double*)malloc(nchans_in*(nbeams-1)*nants*2*sizeof(double)); //assume one phase correction for each coarse freq
     upchan_output = (float*)malloc(input_len*sizeof(float));
+    float* freq_now = (float*)malloc(nchans_in*sizeof(float));
+    struct timespec time_now;
+    struct beamCoord beam_coord;
+    struct antCoord ant_coord;
+      
     uint64_t mcnt=0;
     int curblock_in=0;
     int curblock_out=0;
@@ -89,14 +160,28 @@ static void *run(hashpipe_thread_args_t * args)
         hputs(st.buf, status_key, "processing cpu");
         hashpipe_status_unlock_safe(&st);
 
-	//Calcuate phase------------------------------------------------------------
-	//Do we want it here or as a separate thread? will need to update every second.
-	for (int b = 0; b < nbeams; b++) {
-	  for (int i = 0; i < nants; i++) {
-	    host_phase[(b*nants+i)*2] = 1;   //Real
-	    host_phase[(b*nants+i)*2+1] = 1; //Imag
-	  }
+	//Parse info from metadata (hardcoded for now)-------------------------------
+	//Time: Do we want it here or as a separate thread? will need to update every second.
+	time_now.tv_sec = 100.;
+	time_now.tv_nsec = 200.;
+	//Freq
+	for (int f = 0 ; f < nchans_in ; f++ ) {
+	  freq_now[f] = 700.0 + f*0.00836;
 	}
+	//Antenna position (read from lookup table, only need to do it once)
+	for (int i = 0 ; i < nants; i++ ) {
+	  ant_coord.north[i] = 1.1;
+	  ant_coord.east[i] = 2.2;
+	  ant_coord.up[i] = 3.3;
+	}
+	//Beam coordinatees
+	for (int b = 0; b< nbeams-1; b++){
+	  beam_coord.ra[b] = 128.83588121;
+	  beam_coord.dec[b] = -45.17635419;
+	}
+	
+	//Calcuate phase------------------------------------------------------------
+	calculate_phase(nbeams-1, nants, nchans_in, time_now, freq_now, beam_coord, ant_coord, host_phase);
 	  
 	//Read input  [ant-freq-time-pol]
         host_input =db_in->block[curblock_in].data_block;
@@ -138,7 +223,7 @@ static void *run(hashpipe_thread_args_t * args)
 	hputi4(st.buf,"upch[-1]",upchan_output[input_len-1]);
 
 	//incoherent beamform by adding all antennas--------------------------------
-	for (int ft = 0 ; ft < nchans_out*nsamps_out ; ft++) {
+	for (uint32_t ft = 0 ; ft < nchans_out*nsamps_out ; ft++) {
 	  float tmp_real = 0.0;
 	  float tmp_imag = 0.0;
 	  float out_sq = 0.0;
@@ -158,24 +243,28 @@ static void *run(hashpipe_thread_args_t * args)
 	hputi4(st.buf,"incoh[-1]",host_output[nchans_out*nsamps_out-1]);
 	
 	//coherent beamform by multiplying phase
-	for (int ft = 0 ; ft < nchans_out*nsamps_out ; ft++) {
-	  for (int b = 1 ; b < nbeams ; b++) { //starting from b1 since b0 is incoherent
-	    float out_sq = 0.0;
-	    int out_id = b*nchans_out*nsamps_out + ft;
-	    for (int p = 0 ; p < npols ; p++) {
-	      float tmp_real = 0.0;
-	      float tmp_imag = 0.0;
-	      //multiply-add the 64 antennas with phase offset
-	      for (int i = 0 ; i < nants ; i++) {
-		int ph_id = (b*nants+i)*2;
-		int in_id = (i*nchans_out*nsamps_out*npols + ft*npols + p)*2;
-		tmp_real += upchan_output[in_id] * host_phase[ph_id] + upchan_output[in_id+1]*host_phase[ph_id+1];
-		tmp_imag += upchan_output[in_id+1]*host_phase[ph_id] - upchan_output[in_id]*host_phase[ph_id+1];
+	for (uint32_t f = 0 ; f < nchans_out ; f++) {
+	  int f_coarse = (int)f/nupchan;
+	  for (uint32_t t = 0 ; t < nsamps_out ; t++ ) {
+	    uint32_t ft = f*t;
+	    for (int b = 1 ; b < nbeams ; b++) { //starting from b1 since b0 is incoherent
+	      float out_sq = 0.0;
+	      int out_id = b*nchans_out*nsamps_out + ft;
+	      for (int p = 0 ; p < npols ; p++) {
+		float tmp_real = 0.0;
+		float tmp_imag = 0.0;
+		//multiply-add the 64 antennas with phase offset
+		for (int i = 0 ; i < nants ; i++) {
+		  uint32_t ph_id = (f_coarse*(nbeams-1)*nants + (b-1)*nants+i)*2;
+		  uint32_t in_id = (i*nchans_out*nsamps_out*npols + ft*npols + p)*2;
+		  tmp_real += upchan_output[in_id] * host_phase[ph_id] + upchan_output[in_id+1]*host_phase[ph_id+1];
+		  tmp_imag += upchan_output[in_id+1]*host_phase[ph_id] - upchan_output[in_id]*host_phase[ph_id+1];
+		}
+		out_sq += tmp_real*tmp_real + tmp_imag*tmp_imag; //sum Real+Imag and pol
 	      }
-	      out_sq += tmp_real*tmp_real + tmp_imag*tmp_imag; //sum Real+Imag and pol
+	      //host_output [beam->freq->time]
+	      host_output[out_id] = out_sq;
 	    }
-	    //host_output [beam->freq->time]
-	    host_output[out_id] = out_sq;
 	  }
 	}
 	  
@@ -210,6 +299,7 @@ static void *run(hashpipe_thread_args_t * args)
     free(host_output);
     free(host_phase);
     free(upchan_output);
+    free(freq_now);
 
 }
 
