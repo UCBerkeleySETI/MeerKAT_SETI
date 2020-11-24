@@ -2,12 +2,11 @@
 
 Process all 64 antennas, 1/16 freq band, 5s in time
 
-See [link](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#
-/this%memo) for further information the DSP plan. 
+See [this memo](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#) for further information the DSP plan. 
 
 ## Start the program:
 
-Currently supporting "Option 1" in the DSP plan, i.e. Upchannelize all the way to 1Hz channels and then coh/incoh beamform (CPU verification)
+Currently supporting "Option 1" of the DSP plan, i.e. Upchannelize all the way to 1Hz channels and then coh/incoh beamform. The following is a CPU-only verification:
 
 ```
 ./cpu_upchan_beamform.sh
