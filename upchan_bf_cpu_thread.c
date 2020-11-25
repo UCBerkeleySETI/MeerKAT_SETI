@@ -174,9 +174,27 @@ static void *run(hashpipe_thread_args_t * args)
 	  freq_now[f] = 700.0 + f*0.00836;
 	}
 	//Antenna position (read from lookup table, only need to do it once)
+	FILE* ptr = fopen("meerkat_antenna_positions.dat","r");
+	if (ptr==NULL)
+	  {
+	    printf("Missing antenna positions");
+	    return 0;
+	  }
+	fscanf(ptr, "%*[^\n]\n"); //skip first line
 	for (int i = 0 ; i < nants; i++ ) {
-	  scanf("%f %f %f", &ant_coord.north[i], &ant_coord.east[i], &ant_coord.up[i] ;)
+	  if (fscanf(ptr, "%*s %f %f %f", &ant_coord.north[i], &ant_coord.east[i], &ant_coord.up[i]) != 3){
+	  printf("problem reading in positions");
+	  return 0;
+	  }
 	}
+	fclose(ptr);
+	hputr4(st.buf,"ant_N[0]",ant_coord.north[0]);
+	hputr4(st.buf,"ant_N[-1]",ant_coord.north[nants-1]);
+	hputr4(st.buf,"ant_E[0]",ant_coord.east[0]);
+	hputr4(st.buf,"ant_E[-1]",ant_coord.east[nants-1]);
+	hputr4(st.buf,"ant_U[0]",ant_coord.up[0]);
+	hputr4(st.buf,"ant_U[-1]",ant_coord.up[nants-1]);	
+	
 	//Beam coordinatees
 	for (int b = 0; b< nbeams-1; b++){
 	  beam_coord.ra[b] = 128.83588121;
