@@ -1,11 +1,12 @@
 /*upchan_bf_cpu_thread.c
  *
- * Beamforming in CPU
+ * Upchannelize and Beamforming in CPU
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include <sys/time.h>
 #include <time.h>
@@ -114,11 +115,14 @@ static void *run(hashpipe_thread_args_t * args)
     struct timespec time_now;
     struct beamCoord beam_coord;
     struct antCoord ant_coord;
-    
+
+    //FFT stuff
     fftwf_complex *fftbuf;
     fftwf_plan fplan;
     fftbuf = (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex)*nupchan);
     fplan = fftwf_plan_dft_1d(nupchan, fftbuf, fftbuf, FFTW_FORWARD, FFTW_MEASURE);
+
+    bool update_antenna = true;
 
     uint64_t mcnt=0;
     int curblock_in=0;
@@ -173,21 +177,25 @@ static void *run(hashpipe_thread_args_t * args)
 	for (int f = 0 ; f < nchans_in ; f++ ) {
 	  freq_now[f] = 700.0 + f*0.00836;
 	}
-	//Antenna position (read from lookup table, only need to do it once)
-	FILE* ptr = fopen("meerkat_antenna_positions.dat","r");
-	if (ptr==NULL)
-	  {
-	    printf("Missing antenna positions");
-	    return 0;
+
+	//Antenna position (read from lookup table, only need to do it once)----------
+	if (update_antenna) {
+	  FILE* ptr = fopen("meerkat_antenna_positions.dat","r");
+	  if (ptr==NULL)
+	    {
+	      printf("Missing antenna positions");
+	      return 0;
+	    }
+	  fscanf(ptr, "%*[^\n]\n"); //skip first line
+	  for (int i = 0 ; i < nants; i++ ) {
+	    if (fscanf(ptr, "%*s %f %f %f", &ant_coord.north[i], &ant_coord.east[i], &ant_coord.up[i]) != 3){
+	      printf("problem reading in positions");
+	      return 0;
+	    }
 	  }
-	fscanf(ptr, "%*[^\n]\n"); //skip first line
-	for (int i = 0 ; i < nants; i++ ) {
-	  if (fscanf(ptr, "%*s %f %f %f", &ant_coord.north[i], &ant_coord.east[i], &ant_coord.up[i]) != 3){
-	  printf("problem reading in positions");
-	  return 0;
-	  }
+	  fclose(ptr);
+	  update_antenna  = false;
 	}
-	fclose(ptr);
 	hputr4(st.buf,"ant_N[0]",ant_coord.north[0]);
 	hputr4(st.buf,"ant_N[-1]",ant_coord.north[nants-1]);
 	hputr4(st.buf,"ant_E[0]",ant_coord.east[0]);
