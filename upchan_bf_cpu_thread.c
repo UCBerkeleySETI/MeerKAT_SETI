@@ -21,9 +21,9 @@
 #define PI 3.14159265
 #define light 299792458.
 #define one_over_c 0.0033356
-#define R2D 180. / PI
-#define D2R PI / 180.
-#define TAU 2 * PI
+#define R2D (180. / PI)
+#define D2R (PI / 180.)
+#define TAU (2 * PI)
 #define inst_long 20.4439
 #define inst_lat 30.7111  //Do we need to take altitude into account?
 
@@ -114,7 +114,12 @@ static void *run(hashpipe_thread_args_t * args)
     struct timespec time_now;
     struct beamCoord beam_coord;
     struct antCoord ant_coord;
-      
+    
+    fftwf_complex *fftbuf;
+    fftwf_plan fplan;
+    fftbuf = (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex)*nupchan);
+    fplan = fftwf_plan_dft_1d(nupchan, fftbuf, fftbuf, FFTW_FORWARD, FFTW_MEASURE);
+
     uint64_t mcnt=0;
     int curblock_in=0;
     int curblock_out=0;
@@ -170,9 +175,7 @@ static void *run(hashpipe_thread_args_t * args)
 	}
 	//Antenna position (read from lookup table, only need to do it once)
 	for (int i = 0 ; i < nants; i++ ) {
-	  ant_coord.north[i] = 1.1;
-	  ant_coord.east[i] = 2.2;
-	  ant_coord.up[i] = 3.3;
+	  scanf("%f %f %f", &ant_coord.north[i], &ant_coord.east[i], &ant_coord.up[i] ;)
 	}
 	//Beam coordinatees
 	for (int b = 0; b< nbeams-1; b++){
@@ -192,13 +195,7 @@ static void *run(hashpipe_thread_args_t * args)
 	hputi4(st.buf,"in[-2]",host_input[input_len-2]);	
 	hputi4(st.buf,"in[-1]",host_input[input_len-1]);
 
-
 	//Upchannelize with an FFT---------------------------------------------------
-	fftwf_complex *fftbuf;
-	fftwf_plan fplan;
-	fftbuf = (fftwf_complex *)fftwf_malloc(sizeof(fftwf_complex)*nupchan);
-	fplan = fftwf_plan_dft_1d(nupchan, fftbuf, fftbuf, FFTW_FORWARD, FFTW_MEASURE);
-
 	for (int i = 0 ; i < nants*nchans_in*(nsamps_in/nupchan) ; i++) {
 	  for (int p = 0 ; p < npols ; p++){
 	    for (int j = 0; j < nupchan ; j++){
@@ -212,8 +209,6 @@ static void *run(hashpipe_thread_args_t * args)
 	    }
 	  }
 	}
-	fftwf_free(fftbuf); 
-	fftwf_destroy_plan(fplan); 
 	
 	hputi4(st.buf,"upch[0]",upchan_output[0]);
 	hputi4(st.buf,"upch[1]",upchan_output[1]);
@@ -300,6 +295,8 @@ static void *run(hashpipe_thread_args_t * args)
     free(host_phase);
     free(upchan_output);
     free(freq_now);
+    fftwf_free(fftbuf); 
+    fftwf_destroy_plan(fplan); 
 
 }
 
