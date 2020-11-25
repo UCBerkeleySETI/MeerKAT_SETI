@@ -236,12 +236,12 @@ static void *run(hashpipe_thread_args_t * args)
 	  }
 	}
 	
-	hputi4(st.buf,"upch[0]",upchan_output[0]);
-	hputi4(st.buf,"upch[1]",upchan_output[1]);
-	hputi4(st.buf,"upch[2]",upchan_output[2]);
-	hputi4(st.buf,"upch[-3]",upchan_output[input_len-3]);
-	hputi4(st.buf,"upch[-2]",upchan_output[input_len-2]);
-	hputi4(st.buf,"upch[-1]",upchan_output[input_len-1]);
+	hputr4(st.buf,"upch[0]",upchan_output[0]);
+	hputr4(st.buf,"upch[1]",upchan_output[1]);
+	hputr4(st.buf,"upch[2]",upchan_output[2]);
+	hputr4(st.buf,"upch[-3]",upchan_output[input_len-3]);
+	hputr4(st.buf,"upch[-2]",upchan_output[input_len-2]);
+	hputr4(st.buf,"upch[-1]",upchan_output[input_len-1]);
 
 	//incoherent beamform by adding all antennas--------------------------------
 	for (uint32_t ft = 0 ; ft < nchans_out*nsamps_out ; ft++) {
@@ -260,8 +260,8 @@ static void *run(hashpipe_thread_args_t * args)
 	  host_output[ft] = out_sq;
 	}
 
-	hputi4(st.buf,"incoh[0]",host_output[0]);
-	hputi4(st.buf,"incoh[-1]",host_output[nchans_out*nsamps_out-1]);
+	hputr4(st.buf,"Inc[0]",host_output[0]);
+	hputr4(st.buf,"Inc[-1]",host_output[nchans_out*nsamps_out-1]);
 	
 	//coherent beamform by multiplying phase
 	for (uint32_t f = 0 ; f < nchans_out ; f++) {
@@ -303,12 +303,12 @@ static void *run(hashpipe_thread_args_t * args)
 	mcnt++;
 	//display sum in status
 	hashpipe_status_lock_safe(&st);
-	hputi4(st.buf,"out[0]",host_output[0]);
-	hputi4(st.buf,"out[1]",host_output[1]);
-	hputi4(st.buf,"out[2]",host_output[2]);
-	hputi4(st.buf,"out[-3]",host_output[nbeams*nchans_out*nsamps_out-3]);
-	hputi4(st.buf,"out[-2]",host_output[nbeams*nchans_out*nsamps_out-2]);
-	hputi4(st.buf,"out[-1]",host_output[nbeams*nchans_out*nsamps_out-1]);
+	hputr4(st.buf,"Coh[0]",host_output[nchans_out*nsamps_out]);
+	hputr4(st.buf,"Coh[1]",host_output[nchans_out*nsamps_out+1]);
+	hputr4(st.buf,"Coh[2]",host_output[nchans_out*nsamps_out+2]);
+	hputr4(st.buf,"Coh[-3]",host_output[nbeams*nchans_out*nsamps_out-3]);
+	hputr4(st.buf,"Coh[-2]",host_output[nbeams*nchans_out*nsamps_out-2]);
+	hputr4(st.buf,"Coh[-1]",host_output[nbeams*nchans_out*nsamps_out-1]);
 	hashpipe_status_unlock_safe(&st);
         /* Check for cancel */
         pthread_testcancel();
