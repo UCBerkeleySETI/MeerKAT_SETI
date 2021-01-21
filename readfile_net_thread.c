@@ -51,8 +51,8 @@ static void *run(hashpipe_thread_args_t * args)
     off_t pos;
     int fdin;
     rawspec_raw_hdr_t raw_hdr;
-    rawspec_context ctx;
     size_t bytes_read;
+    char databuf[100];
 
     memset(&ctx, 0, sizeof(ctx));
 
@@ -93,11 +93,7 @@ static void *run(hashpipe_thread_args_t * args)
 	pos = rawspec_raw_read_header(fdin, &raw_hdr);
 	printf("raw_hdr.obsnchan %d\n", raw_hdr.obsnchan);
 	printf("raw_hdr.nants %d\n", raw_hdr.nants);
-        // Calculate Ntpb and validate block dimensions
-	ctx.Nc = 1;//raw_hdr.obsnchan;
-	ctx.Np = 1;//raw_hdr.npol;
-	ctx.Nbps = raw_hdr.nbits;
-	ctx.Ntpb = raw_hdr.blocsize / (2 * ctx.Np * ctx.Nc * (ctx.Nbps/8));
+	printf("Current file position=%d\n",pos);
 	
         hashpipe_status_lock_safe(&st);
         hputs(st.buf, status_key, "receiving");
@@ -105,19 +101,11 @@ static void *run(hashpipe_thread_args_t * args)
 	
 
 	//Read data
-	printf("Going to read %d bytes\n", 2 * ctx.Np * ctx.Nc * (ctx.Nbps/8) * ctx.Ntpb);
-	printf("ctx.Nb_host %d \n", ctx.Nb_host);
-
-	// Initialize for new dimensions and/or conjugation
-	ctx.Nb = 0;           // auto-calculate
-	ctx.Nb_host = 0;      // auto-calculate
-	ctx.h_blkbufs = NULL; // auto-allocate
-
-	//Read data, try read only 2B for now
-	bytes_read = read_fully(fdin,
-					ctx.h_blkbufs[0], 2);
+	bytes_read = read_fully(fdin,databuf, 2);
 	close(fdin);
-	printf("Data %s %s\n", ctx.h_blkbufs[0], ctx.h_blkbufs[1]);
+	for (int i=0;i<4;i++) {
+	  printf("i=%d data=%d\n", i, databuf[i]);
+	}
 
 	//input two numbers 
 	printf("Please input first number:");
