@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <errno.h>
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
@@ -79,12 +78,23 @@ static void *run(hashpipe_thread_args_t * args)
 	//Read raw files
 	fdin = open("/datax/20200626/commensal/Unknown/GUPPI/guppi_59025_41038_003850_Unknown_0001.0000.raw", O_RDONLY);
 	if(fdin == -1) {
-	  printf(" [%s]\n", strerror(errno));
-	  break; // Goto next stem
+	  hashpipe_error(__FUNCTION__, "cannot open raw file");
+	  pthread_exit(NULL);
+	  break;
 	}
 	printf("\n");
 	//Read header
 	pos = rawspec_raw_read_header(fdin, &raw_hdr);
+	if(pos <= 0) {
+	  if(pos == -1) {
+	    hashpipe_error(__FUNCTION__, "error getting obs params from header");
+	  } else {
+	    hashpipe_error(__FUNCTION__, "no data found in header");
+	  }
+	  close(fdin);
+	  pthread_exit(NULL);
+	  break;
+	}
 	printf("raw_hdr.obsnchan %d\n", raw_hdr.obsnchan);
 	printf("raw_hdr.nants %d\n", raw_hdr.nants);
 	printf("Current file position=%ld\n",pos);
