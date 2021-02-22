@@ -6,8 +6,12 @@ See [this memo](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_
 
 ## Start the program:
 
-Currently supporting "Option 1" of the DSP plan, i.e. Upchannelize all the way to 1Hz channels and then coh/incoh beamform. The following is a CPU-only verification:
+To just read a raw file and send to null ouput:
+```
+./readfile_init.sh
+```
 
+To Upchannelize (FFT) and coh/incoh beamform (see "Option 1" of the DSP plan). The follow is a CPU-only version for verification:
 ```
 ./cpu_upchan_beamform.sh
 ```
