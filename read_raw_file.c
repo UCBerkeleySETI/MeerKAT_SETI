@@ -29,6 +29,22 @@ int get_header_size(char * header_buf, size_t len)
   }
   return i;
 }
+
+int get_block_size(char * header_buf, size_t len)
+{
+  int i;
+  char bs_str[32];
+  int blocsize;
+  //Read header loop over the 80-byte records
+  for (i=0; i<len; i += 80) {
+    if(!strncmp(header_buf+i, "BLOC", 4)) {
+      strncpy(bs_str,header_buf+i+16, 32);
+      blocsize = atoi(bs_str);
+      break;
+    }
+  }
+  return blocsize;
+}
   
   
 ssize_t read_fully(int fd, void * buf, size_t bytes_to_read)
@@ -119,18 +135,10 @@ static void *run(hashpipe_thread_args_t * args)
         hashpipe_status_unlock_safe(&st);
 	
 	//Read data
-	//int nfreq = raw_hdr.obsnchan/raw_hdr.nants;
+	int blocsize = get_block_size(header_buf, MAX_HDR_SIZE);
+	//printf("Block size %d\n",blocsize);
 	ptr = hpguppi_databuf_data(db, block_idx);
-
-	/*
-	len = raw_hdr.blocsize;
-	printf("len is %d; directio is %d\n", len, directio);
-	if(directio) {
-	  // Round up to next multiple of 512
-	  len = (len+511) & ~511;
-	}
-	*/
-	bytes_read = read_fully(fdin, ptr, 5120);
+	bytes_read = read_fully(fdin, ptr, blocsize);
 	close(fdin);
 
 	//display some values
