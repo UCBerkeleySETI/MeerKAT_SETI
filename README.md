@@ -2,7 +2,13 @@
 
 Process all 64 antennas, 1/16 freq band, 5s in time
 
-See [this memo](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#) for further information the DSP plan. 
+Relvant memos include:
+
+* BL MeerKAT presentation slide deck: [link](https://docs.google.com/presentation/d/1tKlvAaVFdGViZfZ6mD9XTiMshtWjChFadIcHzaJMpx8/edit?usp=sharing)
+* BLUSE overview:  [link](https://docs.google.com/document/d/1uj7vAF1FXq7kQcGdi2lr7K2eg98MFW3d3eqsAB2Z3LQ/edit#heading=h.twuqnlahbx18)
+* DSP plan: Upchannelization and beamforming schemes [link](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#)
+* RAW input file format: [link](https://docs.google.com/document/d/1dnye0HHSlVqRXH7rQ7v3wly0qKg-3_9tGJzaTI-76s4/edit#)
+* MK hashpipe to-do list: [link](https://docs.google.com/document/d/1NrggefvZZ1pxu1ArdtUJGn7RGECHQMxR_JlFeLr0jpc/edit#)
 
 ## Start the program:
 
