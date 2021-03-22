@@ -13,6 +13,22 @@
 #include "hpguppi_databuf.h"
 #include "rawspec_rawutils.h"
 
+define MAX_RAW_HDR_SIZE (25600)
+
+int get_header_size(char * header_buf, size_t MAX_RAW_HDR_SIZE)
+{
+  //Read header loop over the 80-byte records
+  for(int i=0; i<MAX_RAW_HDR_SIZE; i += 80) {
+    // If we found the "END " record
+    if(!strncmp(header_buf+i, "END ", 4)) {
+      // Move to just after END record
+      i += 80;
+    }
+  }
+  return i;
+}
+  
+  
 ssize_t read_fully(int fd, void * buf, size_t bytes_to_read)
 {
   ssize_t bytes_read;
@@ -52,6 +68,7 @@ static void *run(hashpipe_thread_args_t * args)
     char *ptr;
     int len;
     int directio = 0;
+    char header_buf[6000];
     while (run_threads()) {
 
         hashpipe_status_lock_safe(&st);
@@ -87,30 +104,22 @@ static void *run(hashpipe_thread_args_t * args)
 	  break;
 	}
 	printf("\n");
-	//Read header
-	pos = rawspec_raw_read_header(fdin, &raw_hdr);
-	if(pos <= 0) {
-	  if(pos == -1) {
-	    hashpipe_error(__FUNCTION__, "error getting obs params from header");
-	  } else {
-	    hashpipe_error(__FUNCTION__, "no data found in header");
-	  }
-	  close(fdin);
-	  pthread_exit(NULL);
-	  break;
-	}
-	printf("raw_hdr.obsnchan %d\n", raw_hdr.obsnchan);
-	printf("raw_hdr.nants %d\n", raw_hdr.nants);
-	printf("Current file position=%ld\n",pos);
-	
+
+	read(fdin, header_buf, MAX_RAW_HDR_SIZE);
+	int pos = get_header_size(header_buf, MAX_RAW_HDR_SIZE);
+	printf("pos is %d\n", pos);
+
+	//Write header info to buf
+	char *header = hpguppi_databuf_header(db, block_idx);
         hashpipe_status_lock_safe(&st);
         hputs(st.buf, status_key, "receiving");
+	memcpy(header, &header_buf, pos);
         hashpipe_status_unlock_safe(&st);
 	
-
 	//Read data
 	//int nfreq = raw_hdr.obsnchan/raw_hdr.nants;
 	ptr = hpguppi_databuf_data(db, block_idx);
+
 	len = raw_hdr.blocsize;
 	printf("len is %d; directio is %d\n", len, directio);
 	if(directio) {
