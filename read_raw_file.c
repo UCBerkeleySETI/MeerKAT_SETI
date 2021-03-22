@@ -1,4 +1,4 @@
-#define MAX_HDR_SIZE (6000)
+#define MAX_HDR_SIZE (256000)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +70,7 @@ static void *run(hashpipe_thread_args_t * args)
     char *ptr;
     int len;
     int directio = 0;
-    char header_buf[6000];
+    char header_buf[MAX_HDR_SIZE];
     while (run_threads()) {
 
         hashpipe_status_lock_safe(&st);
