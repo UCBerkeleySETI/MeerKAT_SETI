@@ -1,3 +1,5 @@
+#define MAX_HDR_SIZE (6000)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -13,16 +15,16 @@
 #include "hpguppi_databuf.h"
 #include "rawspec_rawutils.h"
 
-define MAX_RAW_HDR_SIZE (25600)
-
-int get_header_size(char * header_buf, size_t MAX_RAW_HDR_SIZE)
+int get_header_size(char * header_buf, size_t len)
 {
+  int i;
   //Read header loop over the 80-byte records
-  for(int i=0; i<MAX_RAW_HDR_SIZE; i += 80) {
+  for (i=0; i<len; i += 80) {
     // If we found the "END " record
     if(!strncmp(header_buf+i, "END ", 4)) {
       // Move to just after END record
       i += 80;
+      break;
     }
   }
   return i;
@@ -105,8 +107,8 @@ static void *run(hashpipe_thread_args_t * args)
 	}
 	printf("\n");
 
-	read(fdin, header_buf, MAX_RAW_HDR_SIZE);
-	int pos = get_header_size(header_buf, MAX_RAW_HDR_SIZE);
+	read(fdin, header_buf, MAX_HDR_SIZE);
+	int pos = get_header_size(header_buf, MAX_HDR_SIZE);
 	printf("pos is %d\n", pos);
 
 	//Write header info to buf
@@ -120,13 +122,15 @@ static void *run(hashpipe_thread_args_t * args)
 	//int nfreq = raw_hdr.obsnchan/raw_hdr.nants;
 	ptr = hpguppi_databuf_data(db, block_idx);
 
+	/*
 	len = raw_hdr.blocsize;
 	printf("len is %d; directio is %d\n", len, directio);
 	if(directio) {
 	  // Round up to next multiple of 512
 	  len = (len+511) & ~511;
 	}
-	bytes_read = read_fully(fdin, ptr, len);
+	*/
+	bytes_read = read_fully(fdin, ptr, 5120);
 	close(fdin);
 
 	//display some values
