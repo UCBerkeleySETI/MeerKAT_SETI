@@ -37,9 +37,9 @@ int get_block_size(char * header_buf, size_t len)
   int blocsize;
   //Read header loop over the 80-byte records
   for (i=0; i<len; i += 80) {
-    if(!strncmp(header_buf+i, "BLOC", 4)) {
+    if(!strncmp(header_buf+i, "BLOCSIZE", 8)) {
       strncpy(bs_str,header_buf+i+16, 32);
-      blocsize = atoi(bs_str);
+      blocsize = strtoul(bs_str,NULL,0);
       break;
     }
   }
@@ -136,7 +136,7 @@ static void *run(hashpipe_thread_args_t * args)
 	
 	//Read data
 	int blocsize = get_block_size(header_buf, MAX_HDR_SIZE);
-	//printf("Block size %d\n",blocsize);
+	printf("Block size %d\n",blocsize);
 	ptr = hpguppi_databuf_data(db, block_idx);
 	bytes_read = read_fully(fdin, ptr, blocsize);
 	close(fdin);
