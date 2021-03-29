@@ -39,6 +39,7 @@ int get_block_size(char * header_buf, size_t len)
   for (i=0; i<len; i += 80) {
     if(!strncmp(header_buf+i, "BLOCSIZE", 8)) {
       strncpy(bs_str,header_buf+i+16, 32);
+      bs_str[31] = '\0';
       blocsize = strtoul(bs_str,NULL,0);
       break;
     }
@@ -46,7 +47,25 @@ int get_block_size(char * header_buf, size_t len)
   return blocsize;
 }
   
-  
+void set_output_path(char * header_buf, size_t len, char outpath)
+{
+  int i;
+  char datadir[1024];
+  //Read header loop over the 80-byte records
+  for (i=0; i<len; i += 80) {
+    if(!strncmp(header_buf+i, "DATADIR", 7)) {
+      //strncpy(datadir,header_buf+i+16, 32);
+      //printf("current path %s\n",datadir);
+      strncpy(header_buf+i+16, "/scratch/Cherry/test/\0", 30);
+      //strncpy(datadir,header_buf+i+16, 32);
+      //printf("new path %s\n",datadir);
+      //strncpy(datadir, outpath, 1023);
+      break;
+    }
+  }
+  return 0;
+}
+
 ssize_t read_fully(int fd, void * buf, size_t bytes_to_read)
 {
   ssize_t bytes_read;
@@ -127,12 +146,15 @@ static void *run(hashpipe_thread_args_t * args)
 	int pos = get_header_size(header_buf, MAX_HDR_SIZE);
 	printf("pos is %d\n", pos);
 
+        set_output_path(header_buf, MAX_HDR_SIZE, "test");
+
 	//Write header info to buf
 	char *header = hpguppi_databuf_header(db, block_idx);
         hashpipe_status_lock_safe(&st);
         hputs(st.buf, status_key, "receiving");
 	memcpy(header, &header_buf, pos);
         hashpipe_status_unlock_safe(&st);
+
 	
 	//Read data
 	int blocsize = get_block_size(header_buf, MAX_HDR_SIZE);
