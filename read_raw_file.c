@@ -39,7 +39,7 @@ int get_block_size(char * header_buf, size_t len)
   for (i=0; i<len; i += 80) {
     if(!strncmp(header_buf+i, "BLOCSIZE", 8)) {
       strncpy(bs_str,header_buf+i+16, 32);
-      bs_str[31] = '\0';
+      //bs_str[31] = '\0';
       blocsize = strtoul(bs_str,NULL,0);
       break;
     }
@@ -56,7 +56,9 @@ void set_output_path(char * header_buf, size_t len, char outpath)
     if(!strncmp(header_buf+i, "DATADIR", 7)) {
       //strncpy(datadir,header_buf+i+16, 32);
       //printf("current path %s\n",datadir);
-      strncpy(header_buf+i+16, "/scratch/Cherry/test/\0", 30);
+      //strncpy(header_buf+i+16, "/scratch/Cherry/test/\0", 30);
+      //header_buf[i+16+29] = '\0';
+      hputs(header_buf, "DATADIR", "/buf0/scratch/Cherry/test/");
       //strncpy(datadir,header_buf+i+16, 32);
       //printf("new path %s\n",datadir);
       //strncpy(datadir, outpath, 1023);
