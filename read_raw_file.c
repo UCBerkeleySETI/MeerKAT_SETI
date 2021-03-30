@@ -47,21 +47,14 @@ int get_block_size(char * header_buf, size_t len)
   return blocsize;
 }
   
-void set_output_path(char * header_buf, size_t len, char outpath)
+void set_output_path(char * header_buf, size_t len)
 {
   int i;
   char datadir[1024];
   //Read header loop over the 80-byte records
   for (i=0; i<len; i += 80) {
     if(!strncmp(header_buf+i, "DATADIR", 7)) {
-      //strncpy(datadir,header_buf+i+16, 32);
-      //printf("current path %s\n",datadir);
-      //strncpy(header_buf+i+16, "/scratch/Cherry/test/\0", 30);
-      //header_buf[i+16+29] = '\0';
       hputs(header_buf, "DATADIR", "/buf0/scratch/Cherry/test/");
-      //strncpy(datadir,header_buf+i+16, 32);
-      //printf("new path %s\n",datadir);
-      //strncpy(datadir, outpath, 1023);
       break;
     }
   }
@@ -135,7 +128,6 @@ static void *run(hashpipe_thread_args_t * args)
         }
 
 	//Read raw files
-	//fdin = open("/datax/20200626/commensal/Unknown/GUPPI/guppi_59025_41038_003850_Unknown_0001.0000.raw", O_RDONLY);
 	fdin = open("/buf0/scratch/Cherry/Data/guppi_59204_70813_002321__0001.0000.raw", O_RDONLY);
 	if(fdin == -1) {
 	  hashpipe_error(__FUNCTION__, "cannot open raw file");
@@ -143,12 +135,13 @@ static void *run(hashpipe_thread_args_t * args)
 	  break;
 	}
 	printf("\n");
-
+	
+	//Find out header size
 	read(fdin, header_buf, MAX_HDR_SIZE);
 	int pos = get_header_size(header_buf, MAX_HDR_SIZE);
-	printf("pos is %d\n", pos);
+	printf("Reading block_idx=%d header size=%d\n", block_idx, pos);
 
-        set_output_path(header_buf, MAX_HDR_SIZE, "test");
+        set_output_path(header_buf, MAX_HDR_SIZE);
 
 	//Write header info to buf
 	char *header = hpguppi_databuf_header(db, block_idx);
@@ -160,19 +153,15 @@ static void *run(hashpipe_thread_args_t * args)
 	
 	//Read data
 	int blocsize = get_block_size(header_buf, MAX_HDR_SIZE);
-	printf("Block size %d\n",blocsize);
+	//printf("Block size %d\n",blocsize);
 	ptr = hpguppi_databuf_data(db, block_idx);
 	bytes_read = read_fully(fdin, ptr, blocsize);
 	close(fdin);
 
 	//display some values
-	hashpipe_status_lock_safe(&st);
-	//hputi8(st.buf,"data[0]",db[0]);
-	//hputi8(st.buf,"data[1]",db[1]);
-	//hputi8(st.buf,"data[-2]",input_data[input_len-2]);
-	//hputi8(st.buf,"data[-1]",input_data[input_len-1]);
+	//hashpipe_status_lock_safe(&st);
+	//hashpipe_status_unlock_safe(&st);
 
-	hashpipe_status_unlock_safe(&st);
         // Mark block as full
         hpguppi_input_databuf_set_filled(db, block_idx);
 
