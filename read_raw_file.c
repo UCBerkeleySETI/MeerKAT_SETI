@@ -1,4 +1,5 @@
-#define MAX_HDR_SIZE (6000)
+#define MAX_HDR_SIZE (256000)
+#define BLOC_PER_FILE (128)
 
 #define _GNU_SOURCE 1
 #include <stdio.h>
@@ -14,13 +15,12 @@
 #include <unistd.h>
 #include "hashpipe.h"
 #include "hpguppi_databuf.h"
-//#include "hpguppi_params.h"
-//#include "hpguppi_util.h"
-#include "rawspec_rawutils.h"
-#include <time.h>
+//#include "rawspec_rawutils.h"
+#include "hpguppi_params.h"
 
-int get_header_size(char * header_buf, size_t len)
+int get_header_size(int fdin, char * header_buf, size_t len)
 {
+  read(fdin, header_buf, MAX_HDR_SIZE);
   int i;
   //Read header loop over the 80-byte records
   for (i=0; i<len; i += 80) {
@@ -43,7 +43,6 @@ int get_block_size(char * header_buf, size_t len)
   for (i=0; i<len; i += 80) {
     if(!strncmp(header_buf+i, "BLOCSIZE", 8)) {
       strncpy(bs_str,header_buf+i+16, 32);
-      //bs_str[31] = '\0';
       blocsize = strtoul(bs_str,NULL,0);
       break;
     }
@@ -51,14 +50,13 @@ int get_block_size(char * header_buf, size_t len)
   return blocsize;
 }
   
-void set_output_path(char * header_buf, size_t len)
+void set_output_path(char * header_buf, char * outdir, size_t len)
 {
   int i;
-  char datadir[1024];
   //Read header loop over the 80-byte records
   for (i=0; i<len; i += 80) {
     if(!strncmp(header_buf+i, "DATADIR", 7)) {
-      hputs(header_buf, "DATADIR", "/buf0/scratch/Cherry/test/");
+      hputs(header_buf, "DATADIR", outdir);
       break;
     }
   }
@@ -91,42 +89,34 @@ static void *run(hashpipe_thread_args_t * args)
     hpguppi_input_databuf_t *db  = (hpguppi_input_databuf_t *)args->obuf;
     hashpipe_status_t st = args->st;
     const char * status_key = args->thread_desc->skey;
+    const char * thread_name = args->thread_desc->name;
 
     /* Main loop */
-    int i, rv,input;
-    //uint64_t mcnt = 0;
+    int i, rv;
     int block_idx = 0;
-    int block_count=0, blocks_per_file=128, filenum=0;
-
+    int block_count=0, filenum=0;
+    int blocsize;
     size_t pos;
-
-    rawspec_raw_hdr_t raw_hdr;
     size_t bytes_read;
     char *ptr;
-    int len;
-    int directio = 0;
-    char header_buf[MAX_HDR_SIZE];
-    int open_flags = 0;
-    clock_t start, end, start_loop, end_loop;
-    double cpu_time_used;
-    int blocsize;
 
-    /* Init output file descriptor (-1 means no file open) */
-    static int fdin = -1;
-
-    directio = 1; //hpguppi_read_directio_mode(ptr);
+    //Filenames and paths
     char basefilename[200];
     char fname[256];
-    sprintf(basefilename, "%s","/buf0/scratch/Cherry/Data/guppi_59204_70813_002321__0001");
+    hgets(st.buf, "BASEFILE", sizeof(basefilename), basefilename);
+    char outdir[256];
+    hgets(st.buf, "OUTDIR", sizeof(outdir), outdir);
+    /* Init output file descriptor (-1 means no file open) */
+    static int fdin = -1;
+    char header_buf[MAX_HDR_SIZE];
+    int open_flags = O_CREAT|O_RDWR|O_SYNC;
+    int directio = 0;
 
     while (run_threads()) {
-        start = clock();
         hashpipe_status_lock_safe(&st);
         hputs(st.buf, status_key, "waiting");
         hputi4(st.buf, "NETBKOUT", block_idx);
-	//hputi8(st.buf,"NETMCNT",mcnt);
         hashpipe_status_unlock_safe(&st);
-	sleep(1); 
         // Wait for data
         /* Wait for new block to be free, then clear it
          * if necessary and fill its header with new values.
@@ -144,91 +134,55 @@ static void *run(hashpipe_thread_args_t * args)
                 break;
             }
         }
-        end = clock();
-	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	printf("    TIME: waiting for data %f\n", cpu_time_used);
 
 	//Read raw files
 	if (fdin == -1) { //no file opened
-	  start_loop = clock();
-	  start = clock();
 	  sprintf(fname, "%s.%04d.raw", basefilename, filenum);
-	  printf(stderr, "Opening first raw file '%s' (directio=%d)\n", fname, directio);
+	  printf("Opening first raw file '%s'\n", fname);
 	  
-	  open_flags = O_CREAT|O_RDWR|O_SYNC;
-	  /*if(directio) {
-	    open_flags |= O_DIRECT;
-	    }*/
 	  fdin = open(fname, open_flags, 0644);
 	  if (fdin==-1) {
 	    hashpipe_error(__FUNCTION__,"Error opening file.");
 	    pthread_exit(NULL);
 	  }
-	  end = clock();
-	  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	  //printf("    TIME: open file %f\n", cpu_time_used);
 	}
-
 	
-	//Find out header size
-	start = clock();
-	pos = lseek(fdin, 0, SEEK_CUR);
-	//printf("  Before reading anything, at pos=%ld\n",pos);
-	read(fdin, header_buf, MAX_HDR_SIZE);
-	int headersize= get_header_size(header_buf, MAX_HDR_SIZE);
-	//printf("Header size before adjustment %d\n", headersize);
-	// Adjust length for any padding required for DirectIO
-	if(directio) {
-	  // Round up to next multiple of 512
-	  headersize = (headersize+511) & ~511;
-	}
-	printf("Reading block_count=%d idx=%d header size=%d------------------\n", block_count, block_idx, headersize);
-        set_output_path(header_buf, MAX_HDR_SIZE);
+	//Handling header - size, output path, directio----------------
+	int headersize= get_header_size(fdin, header_buf, MAX_HDR_SIZE);
+        set_output_path(header_buf, outdir, MAX_HDR_SIZE);
 
-	//Write header info from header_buf to buf
 	char *header = hpguppi_databuf_header(db, block_idx);
         hashpipe_status_lock_safe(&st);
         hputs(st.buf, status_key, "receiving");
 	memcpy(header, &header_buf, headersize);
         hashpipe_status_unlock_safe(&st);
 
-	//Read data
-	pos = lseek(fdin, 0, SEEK_CUR);
-	printf("  After read header, at pos=%ld, need to seek by %d\n", pos, headersize-MAX_HDR_SIZE);
-	pos = lseek(fdin, headersize-MAX_HDR_SIZE, SEEK_CUR);
-	//	printf("  After seek back, at %ld\n", pos);
-	blocsize = get_block_size(header_buf, MAX_HDR_SIZE);
+	directio = hpguppi_read_directio_mode(header);
+	// Adjust length for any padding required for DirectIO
+	if(directio) {
+	  // Round up to next multiple of 512
+	  headersize = (headersize+511) & ~511;
+	}
+
+	//Read data--------------------------------------------------
 	ptr = hpguppi_databuf_data(db, block_idx);
+	pos = lseek(fdin, headersize-MAX_HDR_SIZE, SEEK_CUR);
+	blocsize = get_block_size(header_buf, MAX_HDR_SIZE);
 	bytes_read = read_fully(fdin, ptr, blocsize);
-	pos = lseek(fdin, 0, SEEK_CUR);
-	//printf(  "  After reading data block, at %ld\n", pos);
-	end = clock();
-	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	//printf("    TIME: read header and data %f\n", cpu_time_used);
-	
-	start = clock();
+
 	// Mark block as full
 	hpguppi_input_databuf_set_filled(db, block_idx);
 
         // Setup for next block
         block_idx = (block_idx + 1) % N_INPUT_BLOCKS;
         block_count++;
-	printf("  Filled db, increment to block_idx=%d block_count=%d \n", block_idx, block_count);
 	
 	/* See if we need to open next file */
-	if (block_count>= blocks_per_file) {
+	if (block_count>= BLOC_PER_FILE) {
 	  close(fdin);
-	  end_loop= clock();
-	  cpu_time_used = ((double) (end_loop - start_loop)) / CLOCKS_PER_SEC;
-	  printf("    TIME: one file %f\n", cpu_time_used);
 	  filenum++;
 	  sprintf(fname, "%s.%4.4d.raw", basefilename, filenum);
-	  open_flags = O_CREAT|O_RDWR|O_SYNC;
-	  /*if(directio) {
-	    open_flags |= O_DIRECT;
-	    }*/
-	  start_loop = clock();
-	  printf(stderr, "Opening next raw file '%s' (directio=%d)\n", fname, directio);
+	  printf("Opening next raw file '%s'\n", fname);
 	  fdin = open(fname, open_flags, 0644);
 	  if (fdin==-1) {
 	    hashpipe_error(__FUNCTION__,"Error opening file.");
@@ -240,10 +194,6 @@ static void *run(hashpipe_thread_args_t * args)
         /* Will exit if thread has been cancelled */
         pthread_testcancel();
 
-	end = clock();
-	cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-	//printf("    TIME: tidy up %f\n", cpu_time_used);
-	
     }
     
     // Thread success!
