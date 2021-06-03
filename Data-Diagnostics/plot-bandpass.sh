@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# A script to make bandpass plot by splicing ics filterbanks
+# Plot bandpass by splicing ics filterbanks
 # Run it in the working directory
 # Using conda env cherry-dev2 (to get blimpy)
 #------------
@@ -25,4 +25,5 @@ do
     rm *.raw
 done
 splice2 blpn*fil -o Combined_$fil
-python plot-bandpass.py Combined_$fil
+python /home/cherryng/scripts/plot-bandpass.py Combined_$fil
+
