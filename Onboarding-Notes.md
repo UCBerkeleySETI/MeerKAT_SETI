@@ -1,6 +1,4 @@
-# Relvant memos:
-
-* [BL MeerKAT slide deck](https://docs.google.com/presentation/d/1tKlvAaVFdGViZfZ6mD9XTiMshtWjChFadIcHzaJMpx8/edit?usp=sharing): Presentation slides that people are welcome to use when giving talks. Please give appropriate credit if you do!
+# Technical memos:
 * [BLUSE overview](https://docs.google.com/document/d/1uj7vAF1FXq7kQcGdi2lr7K2eg98MFW3d3eqsAB2Z3LQ/edit#heading=h.twuqnlahbx18): Overview document of the BLUSE system.
 * [DSP plan](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#): Description of the Upchannelization and beamforming schemes 
 * [RAW input file format](https://docs.google.com/document/d/1dnye0HHSlVqRXH7rQ7v3wly0qKg-3_9tGJzaTI-76s4/edit#): Description of the RAW input data format
@@ -32,5 +30,6 @@ prior to beamforming.
 
 
 # Previous presentations: 
+* [BL MeerKAT slide deck](https://docs.google.com/presentation/d/1tKlvAaVFdGViZfZ6mD9XTiMshtWjChFadIcHzaJMpx8/edit?usp=sharing): Presentation slides that people are welcome to use when giving talks. Please give appropriate credit if you do!
 * [SKA precursor conf](https://www.youtube.com/watch?v=DKCBm5TdJW0&t=1s): A 10-min talk on SETI search with SKA precursors
 * [SKA Crable of Life seminar](https://www.dropbox.com/s/cap4b8g95axqg33/Ng_SKACoL_Webinar_06052021.mp4?dl=0): Hour-long talk on MeerKAT search 
