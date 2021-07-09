@@ -6,16 +6,16 @@
 * [RAW input file format](https://docs.google.com/document/d/1dnye0HHSlVqRXH7rQ7v3wly0qKg-3_9tGJzaTI-76s4/edit#): Description of the RAW input data format
 * [MK hashpipe to-do list](https://docs.google.com/document/d/1NrggefvZZ1pxu1ArdtUJGn7RGECHQMxR_JlFeLr0jpc/edit#): The project to-do lists
 
-## Code base:
+## Code bases:
 * [hpguppi_daq MeerKAT branch](https://github.com/UCBerkeleySETI/hpguppi_daq/tree/cherry-dev/src): With incoherent beamforming and write out filterbank data.
-* [FBFUSE Mosaic](https://gitlab.mpifr-bonn.mpg.de/wchen/Beamforming/tree/master/mosaic): FBFUSE software to handle all of the delay calculations as well as PSF modelling for the 
-array and beam tiling. These have to be used in combination with yet another large set of wrapping control codes that include mechanisms to pull the complex gain solutions from SDPs Telstate and apply them to the data 
-prior to beamforming.
-* [FBFUSE beamformer](https://github.com/ewanbarr/psrdada_cpp/tree/fbfuse_complex_gain_correction): FBFUSE beamformer
 * [MK DSP](https://github.com/UCBerkeleySETI/MeerKAT_DSP): Earlier versions of the MK DSP, now largely deprecated by the `hpguppi_daq MeerKAT branch` linked above.
 * [MK coordinator](https://github.com/danielczech/meerkat-backend-interface): Redis-based interface to get telescope coordinates, status etc.
 * [Target selector](https://github.com/bart-s-wlodarczyk-sroka/meerkat_target_selector): Choosing which targets to observe for a given pointing, taking priorities into account
-* [RFI flagging]
+* [RFI flagging]: link pending from Jiapeng
+* [rawspec]: link pending from Dave M.
+* [FBFUSE Mosaic](https://gitlab.mpifr-bonn.mpg.de/wchen/Beamforming/tree/master/mosaic): FBFUSE software to handle all of the delay calculations as well as PSF modelling for the array and beam tiling. These have to be used in combination with yet another large set of wrapping control codes that include mechanisms to pull the complex gain solutions from SDPs Telstate and apply them to the data prior to beamforming.
+* [FBFUSE beamformer](https://github.com/ewanbarr/psrdada_cpp/tree/fbfuse_complex_gain_correction): FBFUSE beamformer for reference
+
 
 ## MK SETI paper publications:
 * [The Breakthrough Listen Search for Intelligent Life: MeerKAT Target Selection](https://ui.adsabs.harvard.edu/abs/2021PASP..133f4502C/abstract): by Daniel Czech et al., 2021
