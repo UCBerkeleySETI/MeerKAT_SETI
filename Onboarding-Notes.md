@@ -12,6 +12,7 @@
 * [MK coordinator](https://github.com/danielczech/meerkat-backend-interface): Redis-based interface to get telescope coordinates, status etc.
 * [Target selector](https://github.com/bart-s-wlodarczyk-sroka/meerkat_target_selector): Choosing which targets to observe for a given pointing, taking priorities into account
 * [RFI flagging]: link pending from Jiapeng
+* [hashpipe](http://w.astro.berkeley.edu/~davidm/hashpipe.git/) 
 * [rawspec]: link pending from Dave M.
 * [FBFUSE Mosaic](https://gitlab.mpifr-bonn.mpg.de/wchen/Beamforming/tree/master/mosaic): FBFUSE software to handle all of the delay calculations as well as PSF modelling for the array and beam tiling. These have to be used in combination with yet another large set of wrapping control codes that include mechanisms to pull the complex gain solutions from SDPs Telstate and apply them to the data prior to beamforming.
 * [FBFUSE beamformer](https://github.com/ewanbarr/psrdada_cpp/tree/fbfuse_complex_gain_correction): FBFUSE beamformer for reference
@@ -29,6 +30,11 @@
 * [Obs log](https://docs.google.com/spreadsheets/d/1-wZceD-DDaGydIghOhE9sZC3wICqRAUtR5ny6o0N7l8/edit#gid=1533851989): Log of all data collected
 * [Test data on cloud](https://docs.google.com/spreadsheets/d/1qTYAvRcfeIyKA9yUaFO9dC-tLoKSJ_5gwf-bBwYiYX4/edit#gid=0): Info of test data on the cloud
 * [Cloud data](https://console.cloud.google.com/storage/browser/blmeerkat_uk?project=dotted-saga-110420&pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&prefix=&forceOnObjectsSortingFiltering=false): Test data on the cloud
+
+
+## Useful demos: 
+* [Hashpipe tour](https://drive.google.com/file/d/1s5YR0mGSl7UsBZTndXnzLQ0mrOHN7W6j/view?usp=sharing): by Dave M. given at iSETI weekly on 2020-10-15
+* [Hashpipe demos](https://github.com/SparkePei/demo1_hashpipe): Four simple demos from SparkPei
 
 
 ## Previous presentations: 
