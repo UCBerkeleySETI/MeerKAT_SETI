@@ -12,7 +12,7 @@
 * [MK coordinator](https://github.com/danielczech/meerkat-backend-interface): Redis-based interface to get telescope coordinates, status etc.
 * [Target selector](https://github.com/bart-s-wlodarczyk-sroka/meerkat_target_selector): Choosing which targets to observe for a given pointing, taking priorities into account
 * [RFI flagging]: link pending from Jiapeng
-* [hashpipe](http://w.astro.berkeley.edu/~davidm/hashpipe.git/) 
+* [hashpipe](http://w.astro.berkeley.edu/~davidm/hashpipe.git/) <- the main code. And here is a link to some [demo](https://github.com/SparkePei/demo1_hashpipe). 
 * [rawspec](https://github.com/UCBerkeleySETI/rawspec)
 * [FBFUSE Mosaic](https://gitlab.mpifr-bonn.mpg.de/wchen/Beamforming/tree/master/mosaic): FBFUSE software to handle all of the delay calculations as well as PSF modelling for the array and beam tiling. These have to be used in combination with yet another large set of wrapping control codes that include mechanisms to pull the complex gain solutions from SDPs Telstate and apply them to the data prior to beamforming.
 * [FBFUSE beamformer](https://github.com/ewanbarr/psrdada_cpp/tree/fbfuse_complex_gain_correction): FBFUSE beamformer for reference
