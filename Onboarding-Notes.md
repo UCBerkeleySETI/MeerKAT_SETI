@@ -9,8 +9,17 @@
 ## Code bases:
 * [hpguppi_daq MeerKAT branch](https://github.com/UCBerkeleySETI/hpguppi_daq/tree/cherry-dev/src): With incoherent beamforming and write out filterbank data.
 * [MK DSP](https://github.com/UCBerkeleySETI/MeerKAT_DSP): Earlier versions of the MK DSP, now largely deprecated by the `hpguppi_daq MeerKAT branch` linked above.
-* [MK coordinator](https://github.com/danielczech/meerkat-backend-interface): Redis-based interface to get telescope coordinates, status etc.
-* [Target selector](https://github.com/bart-s-wlodarczyk-sroka/meerkat_target_selector): Choosing which targets to observe for a given pointing, taking priorities into account
+* [meerkat-backend-interface](https://github.com/UCBerkeleySETI/meerkat-backend-interface): Comprehensive metadata interface to MeerKAT.  
+    - [katcp_server](https://github.com/UCBerkeleySETI/meerkat-backend-interface/blob/python3/meerkat_backend_interface/katcp_server.py): The BLUSE proxy interface for inclusion as a subarray component.  
+    - [katportal_server](https://github.com/UCBerkeleySETI/meerkat-backend-interface/blob/python3/meerkat_backend_interface/katportal_server.py): MeerKAT Control and Monitoring sensor interface. 
+    - [coordinator](https://github.com/UCBerkeleySETI/meerkat-backend-interface/blob/python3/meerkat_backend_interface/coordinator.py): Delivers appropriate metadata and recording instructions to the processing nodes. Dynamically allocates processing nodes to active subarrays. 
+    - [slack_proxy](https://github.com/UCBerkeleySETI/meerkat-backend-interface/blob/python3/meerkat_backend_interface/slack_proxy.py): Provides a Redis-Slack bridge for communication with Redis channels.  
+      **Note:** To send a message `<msg>` to the Slack channel `<chan>`, publish a message of the form `<chan>:<msg>` to the `slack-messages` channel 
+* commensal-automator:  
+    - [Repository](https://github.com/UCBerkeleySETI/commensal-automator): End-to-end automation of commensal observing. 
+    - [Design](https://docs.google.com/document/d/1SjgYNrjrqaFfCKWCjN2TDElBIDFnG_9XAbdMfvHe9GM/edit?usp=sharing): Document with notes on the design of the `automator`. 
+* [meerkat-monitor](https://github.com/UCBerkeleySETI/meerkat-monitor): General independent monitoring of BLUSE's inclusion in active subarrays. 
+* [target-selector](https://github.com/UCBerkeleySETI/target-selector): Choosing which targets to observe for a given pointing, taking priorities into account.
 * [RFI flagging]: link pending from Jiapeng
 * [hashpipe](http://w.astro.berkeley.edu/~davidm/hashpipe.git/) <- the main code. And here is a link to some [demo](https://github.com/SparkePei/demo1_hashpipe). 
 * [rawspec](https://github.com/UCBerkeleySETI/rawspec)
