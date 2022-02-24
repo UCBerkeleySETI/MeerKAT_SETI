@@ -5,6 +5,8 @@
 * [DSP plan](https://docs.google.com/document/d/1mrrn3YFABuoYqy0pkphNJYT4j44_slB8VltTEUHSlv0/edit#): Description of the Upchannelization and beamforming schemes 
 * [RAW input file format](https://docs.google.com/document/d/1dnye0HHSlVqRXH7rQ7v3wly0qKg-3_9tGJzaTI-76s4/edit#): Description of the RAW input data format
 * [MK hashpipe to-do list](https://docs.google.com/document/d/1NrggefvZZ1pxu1ArdtUJGn7RGECHQMxR_JlFeLr0jpc/edit#): The project to-do lists
+* [BL Coherent Beamformer](https://docs.google.com/document/d/1Rw49TWaAqymom31Hs9Z4tHTSwquZ71d287gYU8WlrSo/edit#): Compiling and running the coherent beamformer code
+* [BL Beamformer Coefficient Phase Computation](https://docs.google.com/document/d/1m228WmeaXnpvqy-y55w6mxyoMrXU1H1rCGy2khO9MUo/edit#): Details on coefficient phase computation with beamformer recipe files
 
 ## Code bases:
 * [hpguppi_daq MeerKAT branch](https://github.com/UCBerkeleySETI/hpguppi_daq/tree/cherry-dev/src): With incoherent beamforming and write out filterbank data.
