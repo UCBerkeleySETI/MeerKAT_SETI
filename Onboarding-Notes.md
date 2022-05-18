@@ -1,4 +1,4 @@
-# MeerKAT SETI sarch onboarding notes
+# MeerKAT SETI search onboarding notes
 
 ## Technical memos:
 * [BLUSE overview](https://docs.google.com/document/d/1uj7vAF1FXq7kQcGdi2lr7K2eg98MFW3d3eqsAB2Z3LQ/edit#heading=h.twuqnlahbx18): Overview document of the BLUSE system.
@@ -7,11 +7,13 @@
 * [MK hashpipe to-do list](https://docs.google.com/document/d/1NrggefvZZ1pxu1ArdtUJGn7RGECHQMxR_JlFeLr0jpc/edit#): The project to-do lists
 * [BL Coherent Beamformer](https://docs.google.com/document/d/1Rw49TWaAqymom31Hs9Z4tHTSwquZ71d287gYU8WlrSo/edit#): Compiling and running the coherent beamformer code
 * [BL Beamformer Coefficient Phase Computation](https://docs.google.com/document/d/1m228WmeaXnpvqy-y55w6mxyoMrXU1H1rCGy2khO9MUo/edit#): Details on coefficient phase computation with beamformer recipe files
+* [CAM interfacing](https://danielczech.github.io/meerkat-diagrams/): Interactive diagrams illustrating the interaction between backend components during a commensal observation. 
+* [Automator](https://docs.google.com/document/d/1SjgYNrjrqaFfCKWCjN2TDElBIDFnG_9XAbdMfvHe9GM/edit?usp=sharing): Design notes for initial end-to-end automation of observations. 
 
 ## Code bases:
 * [hpguppi_daq MeerKAT branch](https://github.com/UCBerkeleySETI/hpguppi_daq/tree/cherry-dev/src): With incoherent beamforming and write out filterbank data.
 * [MK DSP](https://github.com/UCBerkeleySETI/MeerKAT_DSP): Earlier versions of the MK DSP, now largely deprecated by the `hpguppi_daq MeerKAT branch` linked above.
-* [meerkat-backend-interface](https://github.com/UCBerkeleySETI/meerkat-backend-interface): Comprehensive metadata interface to MeerKAT.  
+* [meerkat-backend-interface](https://github.com/UCBerkeleySETI/meerkat-backend-interface): Comprehensive metadata interface to MeerKAT. See the interactive [diagrams](https://danielczech.github.io/meerkat-diagrams/) ([repository](https://github.com/danielczech/meerkat-diagrams)) illustrating the sequence of events during an observation.   
     - [katcp_server](https://github.com/UCBerkeleySETI/meerkat-backend-interface/blob/python3/meerkat_backend_interface/katcp_server.py): The BLUSE proxy interface for inclusion as a subarray component.  
     - [katportal_server](https://github.com/UCBerkeleySETI/meerkat-backend-interface/blob/python3/meerkat_backend_interface/katportal_server.py): MeerKAT Control and Monitoring sensor interface. 
     - [coordinator](https://github.com/UCBerkeleySETI/meerkat-backend-interface/blob/python3/meerkat_backend_interface/coordinator.py): Delivers appropriate metadata and recording instructions to the processing nodes. Dynamically allocates processing nodes to active subarrays. 
@@ -21,7 +23,9 @@
     - [Repository](https://github.com/UCBerkeleySETI/commensal-automator): End-to-end automation of commensal observing. 
     - [Design](https://docs.google.com/document/d/1SjgYNrjrqaFfCKWCjN2TDElBIDFnG_9XAbdMfvHe9GM/edit?usp=sharing): Document with notes on the design of the `automator`. 
 * [meerkat-monitor](https://github.com/UCBerkeleySETI/meerkat-monitor): General independent monitoring of BLUSE's inclusion in active subarrays. 
-* [target-selector](https://github.com/UCBerkeleySETI/target-selector): Choosing which targets to observe for a given pointing, taking priorities into account.
+* [target-selector](https://github.com/danielczech/targets-minimal): Choosing which targets to observe for a given pointing, taking priorities into account.
+* [CAMcorder](https://github.com/danielczech/CAMcorder): Record and replay Redis messages for observation simulation purposes.  
+* [meerkat-reconfig](https://github.com/danielczech/meerkat-reconfig): Resend configuration information to processing nodes for development/diagnostic purposes. 
 * [RFI flagging]: link pending from Jiapeng
 * [hashpipe](http://w.astro.berkeley.edu/~davidm/hashpipe.git/) <- the main code. And here is a link to some [demo](https://github.com/SparkePei/demo1_hashpipe). 
 * [rawspec](https://github.com/UCBerkeleySETI/rawspec)
